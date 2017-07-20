@@ -3,9 +3,26 @@ from tkinter import filedialog
 import math
 import re
 
+# class ConfigDialog:
+
+# 	def __init__(self, parent):
+# 		top = self.top = Toplevel(parent)
+# 		self.size = Label(top, text='Size:')
+# 		self.size.pack()
+# 		self.sizeEntry = Entry(top)
+# 		self.sizeEntry.pack()
+# 		self.submitButton = Button(top, text='Submit', command=self.send)
+# 		self.submitButton.pack()
+
+# 	def send(self):
+# 		self.size = int(self.sizeEntry.get())
+# 		self.top.destroy()
+
 class App(Tk):
 	def __init__(self, *args, **kwargs):
 		Tk.__init__(self, *args, **kwargs)
+
+		self.wm_title("dontbegrey editor")
 
 		self.size = 20
 		self.tileSize = 40
@@ -52,21 +69,10 @@ class App(Tk):
 
 		self.state = False
 
-		self.rows = 100
-		self.columns = 100
 		self.cellwidth = self.tileSize
 		self.cellheight = self.tileSize
 
-		self.map = {}
-		for column in range(self.size):
-			for row in range(self.size):
-				x1 = column * self.cellwidth
-				y1 = row * self.cellheight
-				x2 = x1 + self.cellwidth
-				y2 = y1 + self.cellheight
-				self.map[row,column] = self.canvas.create_rectangle(x1,y1,x2,y2, fill="black", outline="white", tags="map")
-		self.start = {}
-		self.finish = {}
+		self.create_map()
 		self.text = {}
 
 		self.messagelabel = Label(self, text = "Text: ")
@@ -78,6 +84,20 @@ class App(Tk):
 		self.authorlabel.grid(row = 2, column = 0)
 		self.author = Entry(self, width = 40)
 		self.author.grid(row = 2, column = 1)
+
+	def create_map(self):
+		self.canvas.delete("all")
+		self.canvas.config(scrollregion = (0,0,self.size * self.tileSize,self.size * self.tileSize))
+		self.map = {}
+		for column in range(self.size):
+			for row in range(self.size):
+				x1 = column * self.cellwidth
+				y1 = row * self.cellheight
+				x2 = x1 + self.cellwidth
+				y2 = y1 + self.cellheight
+				self.map[row,column] = self.canvas.create_rectangle(x1,y1,x2,y2, fill="black", outline="white", tags="map")
+		self.start = {}
+		self.finish = {}
 
 	def press(self, event):
 		if self.checked == 0:
@@ -101,10 +121,6 @@ class App(Tk):
 				self.canvas.delete(self.finish);
 				del self.finish
 				self.finish = self.canvas.create_rectangle(x1,y1,x2,y2, fill=color, tags="finish")
-			if color == "#AB33C6":
-				self.canvas.delete(self.text);
-				del self.text
-				self.text = self.canvas.create_rectangle(x1,y1,x2,y2, fill=color, tags="text")
 
 	def release(self, event):
 		self.state = False
@@ -137,8 +153,6 @@ class App(Tk):
 			return "#FDFD96"
 		elif color == "finish":
 			return "#FFB347"
-		elif color == "text":
-			return "#AB33C6"
 		elif color == "grey":
 			return "#AAAAAA"
 		else:
@@ -182,8 +196,6 @@ class App(Tk):
 		f = filedialog.asksaveasfile(mode='w', defaultextension=".dbgmap")
 		if f is None:
 			return
-		f.write("Tilesize:\n")
-		f.write(str(self.tileSize)+"\n")
 		f.write("Map:\n")
 		for row in range(self.size):
 			for column in range(self.size):
@@ -208,11 +220,7 @@ class App(Tk):
 		except:
 			print("No finish")
 		try:
-			c = self.canvas.coords(self.text)
-			msg = str(round(c[0]/self.tileSize))+" "+str(round(c[1]/self.tileSize))
 			f.write("Message:\n")
-			f.write(msg)
-			f.write("\n")
 			f.write(self.message.get())
 			f.write("\n")
 			f.write(self.author.get())
@@ -226,9 +234,9 @@ class App(Tk):
 		if f is None:
 			return
 		content = f.read()
-		res = re.split("Tilesize:\n|Map:\n|Start:\n|Finish:\n|Message:\n", content, flags=re.M)
-		self.tileSize = int(res[1])
-		mmap = res[2]
+		res = re.split("Map:\n|Start:\n|Finish:\n|Message:\n", content, flags=re.M)
+		self.tileSize = 40
+		mmap = res[1]
 		lines = mmap.split("\n")
 		i = 0
 		for line in lines:
@@ -242,27 +250,27 @@ class App(Tk):
 				j = j + 1
 			i = i + 1
 
-		start = res[3]
+		start = res[2]
 		x1 = int(start.split(" ")[0]) * self.tileSize
 		y1 = int(start.split(" ")[1]) * self.tileSize
 		self.start = self.canvas.create_rectangle(x1, y1, x1 + self.tileSize, y1 + self.tileSize, fill="#FDFD96", tags="start")
-		finish = res[4]
+		finish = res[3]
 		x1 = int(finish.split(" ")[0]) * self.tileSize
 		y1 = int(finish.split(" ")[1]) * self.tileSize
 		self.finish = self.canvas.create_rectangle(x1, y1, x1 + self.tileSize, y1 + self.tileSize, fill="#FFB347", tags="finish")
-		messageinfo = res[5]
+		messageinfo = res[4]
 		messageinfo = messageinfo.split("\n")
-		x1 = int(messageinfo[0].split(" ")[0]) * self.tileSize
-		y1 = int(messageinfo[0].split(" ")[1]) * self.tileSize
 		self.message.delete(0, END)
-		self.message.insert(0, messageinfo[1])
+		self.message.insert(0, messageinfo[0])
 		self.author.delete(0, END)
-		self.author.insert(0, messageinfo[2])
-		self.text = self.canvas.create_rectangle(x1, y1, x1 + self.tileSize, y1 + self.tileSize, fill="#AB33C6", tags="text")
+		self.author.insert(0, messageinfo[1])
 
 	def configure(self):
 		pass
-
+		# configDialog = ConfigDialog(self)
+		# self.wait_window(configDialog.top)
+		# self.size = configDialog.size
+		# self.create_map()
 
 if __name__ == "__main__":
 	app = App()
